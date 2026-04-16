@@ -29,5 +29,25 @@ desktop.ini
 # Temp fix scripts
 fix.py
 
+# PyInstaller & Pyarmor build outputs
+dist/
+dist_obfuscated/
+build/
+*.exe
+*.spec
+04_Assets/builds/
+
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Session files (contains credentials)
+.evernex_outreach_session_v9
+
+# Temp fix scripts
+fix.py
+
 # PyInstaller
 *.spec

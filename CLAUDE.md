@@ -138,7 +138,7 @@ Quota is enforced in `account_manager.Account.can_send()` — check this before 
 ## 9. Next Steps (Prioritized)
 
 1. **AI Auto-Mode (Gemini Integration)** — Build a Gemini-powered email/LinkedIn message generator. User picks tone (Professional / Direct / Friendly), inputs prospect data, and Gemini drafts personalized outreach. Add a new sidebar section "🤖 AI Mode".
-2. **PyInstaller Build** — Package as a standalone `.exe` with `--onefile --noconsole`. Icon goes in `04_Assets/`.
+2. **PyInstaller Encrypted Build** — See Section 11 below for the full anti-cracking strategy. **Do NOT build a plain unprotected exe.**
 3. **UI Layout Rework** — The user wants to further optimize the layout. Cards could be made more compact and the log feed could show richer metadata (timestamp per entry, color-coded status).
 4. **Git PATH fix on Windows** — Add `C:\Users\telbouzidi\AppData\Local\Programs\Git\cmd` to system PATH permanently so `git` works in any terminal without full path.
 
@@ -149,3 +149,65 @@ Quota is enforced in `account_manager.Account.can_send()` — check this before 
 - Always test with `python 02_Apps/outreach_hub_v9.py` from the repo root or the `02_Apps/` folder.
 - The app runs fine without the Selenium engines loaded — it gracefully degrades if `link.py`, `outlook_engine.py`, or `gmail_engine.py` fail to import.
 - Session file (`.evernex_outreach_session_v9`) is gitignored — each machine needs to log in once to create a fresh session.
+
+---
+
+## 11. Anti-Cracking & Encrypted Build Strategy
+
+> ⚠️ **MANDATORY** — Never distribute a raw PyInstaller `.exe`. The bytecode can be trivially extracted and decompiled. Use the 3-layer approach below.
+
+### Layer 1: Pyarmor Bytecode Obfuscation
+**Pyarmor** wraps every `.py` file so that the bytecode is encrypted and cannot be decompiled back to Python source, even after extraction from the `.exe`.
+
+```bash
+pip install pyarmor
+
+# Obfuscate the entire source tree into a dist/ folder
+pyarmor gen --output dist_obfuscated 02_Apps/outreach_hub_v9.py 01_Engines/
+```
+
+The output in `dist_obfuscated/` contains runtime-encrypted `.pyc` files that require the Pyarmor runtime library to execute. Without it, the code is unreadable.
+
+### Layer 2: PyInstaller with AES-256 Bytecode Encryption
+Build the `.exe` FROM the obfuscated output, not the raw source. Add the `--key` flag to apply an additional AES-256 encryption layer on top of Pyarmor:
+
+```bash
+pip install pyinstaller
+
+pyinstaller \
+  --onefile \
+  --noconsole \
+  --name "EvernexOutreachHub" \
+  --icon "04_Assets/icon.ico" \
+  dist_obfuscated/outreach_hub_v9.py
+```
+
+> **Note:** `--key` for PyInstaller AES encryption requires `pycryptodome`: `pip install pycryptodome`
+
+### Layer 3: Server-Side License Validation (Most Critical)
+This is the **strongest protection** — even if someone cracks layers 1 and 2, the app is useless without a valid live server response from Supabase.
+
+The current `account_manager.authenticate()` already does this correctly:
+- Every app launch calls Supabase to verify the username + activation key.
+- If Supabase is unreachable OR the key is revoked, the app refuses to open.
+- **Never store the activation key in a local file in plaintext** — the session file only stores an encrypted token reference (already implemented).
+
+### Build Checklist (When Ready)
+- [ ] `pip install pyarmor pyinstaller pycryptodome`
+- [ ] Run Pyarmor obfuscation on source
+- [ ] Run PyInstaller on obfuscated output with `--onefile --noconsole`
+- [ ] Test the `.exe` on a machine without Python installed
+- [ ] Verify that the app refuses to launch if the Supabase key is wrong or revoked
+- [ ] Place final `.exe` in `04_Assets/builds/` (gitignored via `*.exe` rule)
+
+### Add to .gitignore
+```
+# Build outputs
+dist/
+dist_obfuscated/
+build/
+*.exe
+*.spec
+04_Assets/builds/
+```
+

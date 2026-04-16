@@ -463,22 +463,25 @@ class OutreachHubV9(ctk.CTk):
         ctk.CTkLabel(self.config_card, text="⚙ Strategy Mode", font=ctk.CTkFont("Segoe UI", 14, weight="bold"), text_color=COLORS["text_primary"]).grid(row=0, column=0, padx=25, pady=(20, 8), sticky="w")
         
         self.type_var = ctk.StringVar(value="Custom JSON")
-        
-        # Native CTkSwitch perfectly fulfills the requested "Day/Night" elegant color sliding toggle at 60FPS.
+
+        # Wrap in a frame to fix pack/grid conflict with CTkSwitch internals on Python 3.14
+        switch_wrapper = ctk.CTkFrame(self.config_card, fg_color="transparent")
+        switch_wrapper.grid(row=1, column=0, padx=25, pady=(0, 15), sticky="w")
+
         self.mode_switch = ctk.CTkSwitch(
-            self.config_card, 
+            switch_wrapper,
             text="Mode: Custom JSON",
             variable=self.type_var,
-            onvalue="Sequence", 
+            onvalue="Sequence",
             offvalue="Custom JSON",
             progress_color=COLORS["red"],
-            button_color=COLORS["bg_dark"], 
+            button_color=COLORS["bg_dark"],
             button_hover_color=COLORS["bg_input"],
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             text_color=COLORS["text_primary"],
             command=self._on_switch_toggle
         )
-        self.mode_switch.grid(row=1, column=0, padx=25, pady=(0, 15), sticky="w")
+        self.mode_switch.pack(side="left")
 
         # Templates
         self.tmpl_frame = ctk.CTkFrame(self.config_card, fg_color="transparent")
